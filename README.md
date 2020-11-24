@@ -38,3 +38,9 @@ If you're on a relatively new version of macOS, you should be able to use the de
 > cmake .. -DCMAKE_BUILD_TYPE="Release"
 > cmake --build .
 ```
+
+### Building for macOS (not at all tested, but it might work?)
+
+```shell
+> scan_gui_example <serial_number>
+```

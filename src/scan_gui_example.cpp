@@ -34,6 +34,33 @@ using namespace mahi::util;
 
 #define PI 3.14159265
 
+
+// utility structure for realtime plot
+struct ScrollingBuffer {
+    int MaxSize;
+    int Offset;
+    ImVector<ImVec2> Data;
+    ScrollingBuffer() {
+        MaxSize = 2000;
+        Offset  = 0;
+        Data.reserve(MaxSize);
+    }
+    void AddPoint(float x, float y) {
+        if (Data.size() < MaxSize)
+            Data.push_back(ImVec2(x,y));
+        else {
+            Data[Offset] = ImVec2(x,y);
+            Offset =  (Offset + 1) % MaxSize;
+        }
+    }
+    void Erase() {
+        if (Data.size() > 0) {
+            Data.shrink(0);
+            Offset  = 0;
+        }
+    }
+};
+
 // Inherit from Application
 class MyApp : public Application {
 public:
@@ -43,6 +70,8 @@ public:
   double x_center[2] = {0};
   double y_center[2] = {0};
   double weight[2] = {0};
+  double current_time = 0;
+  ScrollingBuffer centerData[2];
 
   jsScanSystem scan_system = nullptr;
   std::vector<jsScanHead> scan_heads;
@@ -230,17 +259,35 @@ public:
             data_length[profile.camera] = profile.data_len;
           }
 
+          current_time += ImGui::GetIO().DeltaTime;
+
+          centerData[0].AddPoint(current_time, x_center[0]);
+          centerData[1].AddPoint(current_time, y_center[0]);
         }
 
-        ImPlot::SetNextMarkerStyle(ImPlotMarker_Square, 1, ImVec4(0,1.0f,0,0.5f), IMPLOT_AUTO, ImVec4(0,1,0,1));
-        ImPlot::PlotScatter("Camera 1", x_data[0], y_data[0], data_length[0]);
-        ImPlot::Annotate(x_center[0],y_center[0],ImVec2(10,10),ImPlot::GetLastItemColor(),"Center");
-//        ImPlot::SetNextMarkerStyle(ImPlotMarker_Square, 1, ImVec4(0,0.75f,0,0.5f), IMPLOT_AUTO, ImVec4(0,0.5f,0,1));
-//        ImPlot::PlotScatter("Camera 2", x_data[1], y_data[1], data_length[1]);
+        if (data_length[0] > 0) {
+          ImPlot::SetNextMarkerStyle(ImPlotMarker_Square, 1, ImVec4(0,1.0f,0,0.5f), IMPLOT_AUTO, ImVec4(0,1,0,1));
+          ImPlot::PlotScatter("Camera 1", x_data[0], y_data[0], data_length[0]);
+          ImPlot::Annotate(x_center[0],y_center[0],ImVec2(10,10),ImPlot::GetLastItemColor(),"Center");
+        }
+
+//        if (data_length[1] > 0) {
+//          ImPlot::SetNextMarkerStyle(ImPlotMarker_Square, 1, ImVec4(0,0.75f,0,0.5f), IMPLOT_AUTO, ImVec4(0,0.5f,0,1));
+//          ImPlot::PlotScatter("Camera 2", x_data[1], y_data[1], data_length[1]);
+//        }
       }
       ImPlot::EndPlot();
     }
 
+    ImPlot::SetNextPlotLimitsY(-30, 30);
+    ImPlot::SetNextPlotLimitsX(current_time - 10.0, current_time, ImGuiCond_Always);
+    if (ImPlot::BeginPlot("Center Location","Time [seconds]","X/Y [inches]",ImVec2(1200,200))) {
+      if (centerData[0].Data.size() > 0) {
+        ImPlot::PlotLine("X Center", &centerData[0].Data[0].x, &centerData[0].Data[0].y, centerData[0].Data.size(), centerData[0].Offset, 2 * sizeof(float));
+        ImPlot::PlotLine("Y Center", &centerData[1].Data[0].x, &centerData[1].Data[0].y, centerData[1].Data.size(), centerData[1].Offset, 2 * sizeof(float));
+      }
+      ImPlot::EndPlot();
+    }
     ImGui::End();
     
     if(!stay_open) {

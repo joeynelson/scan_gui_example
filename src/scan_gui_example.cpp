@@ -27,6 +27,7 @@
 #include <Mahi/Gui.hpp>
 #include <Mahi/Util.hpp>
 #include <implot.h>
+#include "jsCircleHough.h"
 
 using namespace mahi::gui;
 using namespace mahi::util;
@@ -39,16 +40,28 @@ public:
   double x_data[2][JS_PROFILE_DATA_LEN];
   double y_data[2][JS_PROFILE_DATA_LEN];
   int data_length[2] = {0};
+  double x_center[2] = {0};
+  double y_center[2] = {0};
+  double weight[2] = {0};
 
   jsScanSystem scan_system = nullptr;
   std::vector<jsScanHead> scan_heads;
   jsProfile profile;
-  
+  jsCircleHough circle_hough;
 
   // 640x480 px window
   MyApp(std::vector<uint32_t> &serial_numbers) : Application() {
     int32_t r = 0;
 
+    int32_t radius = 810;
+    jsCircleHoughConstraints c;
+    c.step_size = 50;
+    c.x_lower = -15000;
+    c.x_upper = 15000;
+    c.y_lower = -30000;
+    c.y_upper = 30000;
+
+    circle_hough = jsCircleHoughCreate(radius, &c);
       
     ImGui::StyleColorsMahiDark3();
     try {
@@ -205,6 +218,12 @@ public:
             throw std::runtime_error("failed to get profiles");
           }
           
+          
+          auto res = jsCircleHoughCalculate(circle_hough, &profile);
+          x_center[profile.camera] = res.x / 1000.0;
+          y_center[profile.camera] = res.y / 1000.0;
+          weight[profile.camera] = res.weight;
+          
           for (unsigned int idx = 0; idx < profile.data_len; idx++) {
             x_data[profile.camera][idx] = profile.data[idx].x / 1000.0;
             y_data[profile.camera][idx] = profile.data[idx].y / 1000.0;
@@ -215,8 +234,9 @@ public:
 
         ImPlot::SetNextMarkerStyle(ImPlotMarker_Square, 1, ImVec4(0,1.0f,0,0.5f), IMPLOT_AUTO, ImVec4(0,1,0,1));
         ImPlot::PlotScatter("Camera 1", x_data[0], y_data[0], data_length[0]);
-        ImPlot::SetNextMarkerStyle(ImPlotMarker_Square, 1, ImVec4(0,0.75f,0,0.5f), IMPLOT_AUTO, ImVec4(0,0.5f,0,1));
-        ImPlot::PlotScatter("Camera 2", x_data[1], y_data[1], data_length[1]);
+        ImPlot::Annotate(x_center[0],y_center[0],ImVec2(10,10),ImPlot::GetLastItemColor(),"Center");
+//        ImPlot::SetNextMarkerStyle(ImPlotMarker_Square, 1, ImVec4(0,0.75f,0,0.5f), IMPLOT_AUTO, ImVec4(0,0.5f,0,1));
+//        ImPlot::PlotScatter("Camera 2", x_data[1], y_data[1], data_length[1]);
       }
       ImPlot::EndPlot();
     }

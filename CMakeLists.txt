@@ -15,5 +15,9 @@ FetchContent_MakeAvailable(pinchot)
 
 add_executable(scan_gui_example
   ${CMAKE_CURRENT_SOURCE_DIR}/src/scan_gui_example.cpp
-  ${C_API_SOURCES})
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/jsCircleHough.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/jsCircleHough.h
+  )
+
+  
 target_link_libraries(scan_gui_example mahi::gui pinchot)

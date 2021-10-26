@@ -38,3 +38,18 @@ If you're on a relatively new version of macOS, you should be able to use the de
 > cmake .. -DCMAKE_BUILD_TYPE="Release"
 > cmake --build .
 ```
+
+### The software is then run from the command line
+
+After the software has been built it scan be run from the command line.  The program takes the serial number 
+of the scan head you wish to connect to as a parameter.
+
+#### Windows
+```shell
+> Release\scan_gui_example <serial_number>
+```
+
+#### Linux or other unix based
+```shell
+> ./Release/scan_gui_example <serial_number>
+```
